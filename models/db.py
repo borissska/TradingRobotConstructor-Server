@@ -133,7 +133,7 @@ class Element(database):
 class Parameter(database):
     __tablename__ = "parameter"
 
-    parameter_id = sql.Column("parameter_id", index=True, autoincrement=True, primary_key=True)
+    parameter_id = sql.Column("parameter_id", sql.Integer, index=True, autoincrement=True, primary_key=True)
     parameter_name = sql.Column("parameter_name", sql.String(20), nullable=False)
     parameter_value = sql.Column("parameter_value", sql.String(20), nullable=False)
 
@@ -145,7 +145,7 @@ class Parameter(database):
 class Element_Parameter(database):
     __tablename__ = "element_parameter"
 
-    element_parameter_id = sql.Column("element_parameter_id", index=True, autoincrement=True, primary_key=True)
+    element_parameter_id = sql.Column("element_parameter_id", sql.Integer, index=True, autoincrement=True, primary_key=True)
     element_id = sql.Column("element_id", sql.Integer, sql.ForeignKey("element.element_id"), nullable=False)
     parameter_id = sql.Column("parameter_id", sql.Integer, sql.ForeignKey("parameter.parameter_id"), nullable=False)
 
@@ -161,7 +161,7 @@ class Strategy(database):
     user_id = sql.Column("user_id", sql.Integer, sql.ForeignKey("user.user_id"), nullable=False)
     state_id = sql.Column("state_id", sql.Integer, sql.ForeignKey("state.state_id"), nullable=False)
     test_id = sql.Column("test_id", sql.Integer, sql.ForeignKey("test.test_id"), nullable=False)
-    ticker_id = sql.Column("ticker_id", sql.String(8), sql.ForeignKey("ticker.ticker_id"), nullable=False)
+    ticker_id = sql.Column("ticker_id", sql.Integer, sql.ForeignKey("ticker.ticker_id"), nullable=False)
     strategy_name = sql.Column("strategy_name", sql.String(20), nullable=False)
     profit = sql.Column("profit", sql.Float)
     percent_of_capital = sql.Column("percent_of_capital", sql.Float, nullable=False)

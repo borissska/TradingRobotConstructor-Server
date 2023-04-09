@@ -2,6 +2,10 @@ import backtrader as bt
 import strategy
 import socket
 import json
+import sqlalchemy
+import pymysql
+from sqlalchemy.orm import sessionmaker
+from models.db import create_database
 
 
 async def run_test():
@@ -33,14 +37,20 @@ def run_server():
     print('connected:', addr)
 
     while True:
-        # if sock.connected == True:
         data = conn.recv(1024)
         if not data:
-            break
+            pass
         print(json.loads(data))
 
-    conn.close()
+    # conn.close()
 
 
 if __name__ == '__main__':
+    engine = sqlalchemy.create_engine("mysql+pymysql://root:root@localhost/tickers", echo=True, pool_size=2)
+    create_database(engine)
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    # sql = "INSERT INTO 'user' ('user_name', 'email_address', 'password') " \
+    #       "VALUES (%s, %s, %s)"
+    # cursor.execute(sql, ('boris', 'boris@okhota.com', '1234'))
     run_server()

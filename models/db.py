@@ -1,3 +1,5 @@
+import datetime
+
 import sqlalchemy as sql
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -32,7 +34,8 @@ class Market(database):
     __tablename__ = "market"
 
     market_id = sql.Column("market_id", sql.Integer, index=True, autoincrement=True, primary_key=True)
-    market_name_id = sql.Column("market_name_id", sql.Integer, sql.ForeignKey("market_name.market_name_id"), nullable=False)
+    market_name_id = sql.Column("market_name_id", sql.Integer, sql.ForeignKey("market_name.market_name_id"),
+                                nullable=False)
     token_key = sql.Column("token_key", sql.String(50), nullable=False)
     token_secret = sql.Column("token_secret", sql.String(50), nullable=False)
 
@@ -63,6 +66,7 @@ class Test(database):
     max_loss = sql.Column("max_loss", sql.Float, nullable=False)
     profit_per_year = sql.Column("profit_per_year", sql.Float, nullable=False)
     full_profit = sql.Column("full_profit", sql.Float, nullable=False)
+    time = sql.Column("time", sql.DateTime, nullable=False, server_default=sql.sql.expression.func.now())
 
     def __init__(self, max_loss, profit_per_year, full_profit):
         self.max_loss = max_loss
@@ -74,7 +78,7 @@ class Ticker(database):
     __tablename__ = "ticker"
 
     ticker_id = sql.Column("ticker_id", sql.Integer, index=True, autoincrement=True, primary_key=True)
-    ticker_name = sql.Column("ticker_name", sql.String(6), nullable=False)
+    ticker_name = sql.Column("ticker_name", sql.String(8), nullable=False)
 
     def __init__(self, ticker_name):
         self.ticker_name = ticker_name
@@ -96,7 +100,7 @@ class Interval(database):
     __tablename__ = "interval"
 
     interval_id = sql.Column("interval_id", sql.Integer, index=True, autoincrement=True, primary_key=True)
-    interval = sql.Column("interval", sql.String(3), nullable=False)
+    interval = sql.Column("interval", sql.String(7), nullable=False)
 
     def __init__(self, interval):
         self.interval = interval
@@ -117,35 +121,46 @@ class Element(database):
 
     element_id = sql.Column("element_id", sql.Integer, index=True, autoincrement=True, primary_key=True)
     strategy_id = sql.Column("strategy_id", sql.Integer, sql.ForeignKey("strategy.strategy_id"), nullable=False)
-    element_type_id = sql.Column("element_type_id", sql.Integer, sql.ForeignKey("element_type.element_type_id"), nullable=False)
+    element_type_id = sql.Column("element_type_id", sql.Integer, sql.ForeignKey("element_type.element_type_id"),
+                                 nullable=False)
     interval_id = sql.Column("interval_id", sql.Integer, sql.ForeignKey("interval.interval_id"), nullable=False)
-    element_name = sql.Column("element_name", sql.String(30), nullable=False)
     weight = sql.Column("weight", sql.Integer, nullable=False)
 
-    def __init__(self, strategy_id, element_type_id, interval_id, element_name, weight):
+    def __init__(self, strategy_id, element_type_id, interval_id, weight):
         self.strategy_id = strategy_id
         self.element_type_id = element_type_id
         self.interval_id = interval_id
-        self.element_name = element_name
         self.weight = weight
+
+
+class Parameter_Name(database):
+    __tablename__ = "parameter_name"
+
+    parameter_name_id = sql.Column("parameter_name_id", sql.Integer, index=True, autoincrement=True, primary_key=True)
+    parameter_name = sql.Column("parameter_name", sql.String(20), nullable=False)
+
+    def __init__(self, parameter_name):
+        self.parameter_name = parameter_name
 
 
 class Parameter(database):
     __tablename__ = "parameter"
 
     parameter_id = sql.Column("parameter_id", sql.Integer, index=True, autoincrement=True, primary_key=True)
-    parameter_name = sql.Column("parameter_name", sql.String(20), nullable=False)
+    parameter_name_id = sql.Column("parameter_name_id", sql.Integer, sql.ForeignKey("parameter_name.parameter_name_id"),
+                                   nullable=False)
     parameter_value = sql.Column("parameter_value", sql.String(20), nullable=False)
 
-    def __init__(self, parameter_name, parameter_value):
-        self.parameter_name = parameter_name
+    def __init__(self, parameter_name_id, parameter_value):
+        self.parameter_name_id = parameter_name_id
         self.parameter_value = parameter_value
 
 
 class Element_Parameter(database):
     __tablename__ = "element_parameter"
 
-    element_parameter_id = sql.Column("element_parameter_id", sql.Integer, index=True, autoincrement=True, primary_key=True)
+    element_parameter_id = sql.Column("element_parameter_id", sql.Integer, index=True, autoincrement=True,
+                                      primary_key=True)
     element_id = sql.Column("element_id", sql.Integer, sql.ForeignKey("element.element_id"), nullable=False)
     parameter_id = sql.Column("parameter_id", sql.Integer, sql.ForeignKey("parameter.parameter_id"), nullable=False)
 

@@ -6,11 +6,6 @@ class TestStrategy(bt.Strategy):
         ('maperiod', 10),
     )
 
-    def log(self, txt, dt=None):
-        ''' Logging function fot this strategy'''
-        dt = dt or self.datas[0].datetime.date(0)
-        print('%s, %s' % (dt.isoformat(), txt))
-
     def __init__(self):
         self.dataclose = self.datas[0].close
         self.order = None

@@ -1,6 +1,6 @@
 import backtrader as bt
 import re
-import strategy
+import strategyTest
 from socket import *
 import json
 import sqlalchemy
@@ -70,8 +70,8 @@ class Server:
                 is_work = False
 
     def checkRegister(self, email):
-        results = self.session.query(models.db.User)\
-            .filter(models.db.User.email_address == str(email))\
+        results = self.session.query(models.db.User) \
+            .filter(models.db.User.email_address == str(email)) \
             .first()
 
         if results is not None:
@@ -80,9 +80,9 @@ class Server:
             return "Not exist"
 
     def checkUser(self, login, password):
-        results = self.session.query(models.db.User)\
-            .filter(models.db.User.user_name == str(login))\
-            .filter(models.db.User.password == str(password))\
+        results = self.session.query(models.db.User) \
+            .filter(models.db.User.user_name == str(login)) \
+            .filter(models.db.User.password == str(password)) \
             .first()
 
         if results is not None:
@@ -91,7 +91,9 @@ class Server:
             return "Not exist"
 
     def tickerExist(self, ticker):
-        results = self.session.query(models.db.Ticker).filter(models.db.Ticker.ticker_name == str(ticker)).first()
+        results = self.session.query(models.db.Ticker) \
+            .filter(models.db.Ticker.ticker_name == str(ticker)) \
+            .first()
         if results is not None:
             return True
         else:
@@ -119,7 +121,7 @@ class Server:
 
     def getParameterId(self, parameter_name_id, parameter_value):
         results = self.session.query(models.db.Parameter) \
-            .filter(models.db.Parameter.parameter_name_id == str(parameter_name_id)) \
+            .filter(models.db.Parameter.parameter_name_id == int(parameter_name_id)) \
             .filter(models.db.Parameter.parameter_value == str(parameter_value)) \
             .first()
 
@@ -130,10 +132,10 @@ class Server:
 
     def getElementId(self, strategy_id, element_type_id, interval_id, weight):
         results = self.session.query(models.db.Element) \
-            .filter(models.db.Element.strategy_id == str(strategy_id)) \
-            .filter(models.db.Element.element_type_id == str(element_type_id)) \
-            .filter(models.db.Element.interval_id == str(interval_id)) \
-            .filter(models.db.Element.weight == str(weight)) \
+            .filter(models.db.Element.strategy_id == int(strategy_id)) \
+            .filter(models.db.Element.element_type_id == int(element_type_id)) \
+            .filter(models.db.Element.interval_id == int(interval_id)) \
+            .filter(models.db.Element.weight == int(weight)) \
             .first()
 
         if results is None:
@@ -143,9 +145,9 @@ class Server:
 
     def getTestId(self, max_loss, profit_per_year, full_profit):
         results = self.session.query(models.db.Test) \
-            .filter(models.db.Test.max_loss == str(max_loss)) \
-            .filter(models.db.Test.profit_per_year == str(profit_per_year)) \
-            .filter(models.db.Test.full_profit == str(full_profit)) \
+            .filter(models.db.Test.max_loss == float(max_loss)) \
+            .filter(models.db.Test.profit_per_year == float(profit_per_year)) \
+            .filter(models.db.Test.full_profit == float(full_profit)) \
             .first()
 
         if results is None:
@@ -155,12 +157,12 @@ class Server:
 
     def getStrategyId(self, user_id, test_id, ticker_id, strategy_name, percent_of_capital, leverage):
         results = self.session.query(models.db.Strategy) \
-            .filter(models.db.Strategy.user_id == str(user_id)) \
-            .filter(models.db.Strategy.test_id == str(test_id)) \
-            .filter(models.db.Strategy.ticker_id == str(ticker_id)) \
+            .filter(models.db.Strategy.user_id == int(user_id)) \
+            .filter(models.db.Strategy.test_id == int(test_id)) \
+            .filter(models.db.Strategy.ticker_id == int(ticker_id)) \
             .filter(models.db.Strategy.strategy_name == str(strategy_name)) \
-            .filter(models.db.Strategy.percent_of_capital == str(percent_of_capital)) \
-            .filter(models.db.Strategy.leverage == str(leverage)) \
+            .filter(models.db.Strategy.percent_of_capital == float(percent_of_capital)) \
+            .filter(models.db.Strategy.leverage == int(leverage)) \
             .first()
 
         if results is None:
@@ -178,6 +180,16 @@ class Server:
         else:
             return results.parameter_name_id
 
+    def getElementTypeId(self, element_type):
+        results = self.session.query(models.db.Type) \
+            .filter(models.db.Type.element_type == str(element_type)) \
+            .first()
+
+        if results is None:
+            return -1
+        else:
+            return results.element_type_id
+
     def getUserIdByName(self, user_name):
         results = self.session.query(models.db.User) \
             .filter(models.db.User.user_name == str(user_name)) \
@@ -191,13 +203,29 @@ class Server:
     def getStrategyIdByNameAndUser(self, strategy_name, user_id):
         results = self.session.query(models.db.Strategy) \
             .filter(models.db.Strategy.strategy_name == str(strategy_name)) \
-            .filter(models.db.Strategy.user_id == str(user_id)) \
+            .filter(models.db.Strategy.user_id == int(user_id)) \
             .first()
 
         if results is None:
             return -1
         else:
             return results.strategy_id
+
+    def getAllElementsByStrategyId(self, strategy_id):
+        results = self.session.query(models.db.Element_Parameter, models.db.Element, models.db.Parameter,
+                                     models.db.Type, models.db.Parameter_Name, models.db.Interval) \
+            .join(models.db.Element) \
+            .join(models.db.Parameter) \
+            .join(models.db.Type) \
+            .join(models.db.Parameter_Name) \
+            .join(models.db.Interval) \
+            .filter(models.db.Element.strategy_id == int(strategy_id)) \
+            .all()
+
+        if results is None:
+            return -1
+        else:
+            return results
 
     def addNewUser(self, email, login, password):
         user = models.db.User(user_name=login, email_address=email, password=password)
@@ -215,8 +243,9 @@ class Server:
                                           leverage=leverage)
             self.session.add(strategy)
             self.session.commit()
-
-        strategy_id = self.getStrategyIdByNameAndUser(user_id=user_id, strategy_name=strategy_name)
+            strategy_id = int(strategy.strategy_id)
+        else:
+            strategy_id = -1
 
         return strategy_id
 
@@ -260,6 +289,34 @@ class Server:
         self.session.add(parameter_decreasing_element_parameter)
         self.session.commit()
 
+    def addSMAElement(self, strategy_id, period, weight, interval):
+        parameter_period_name_id = self.getParameterNameId("period")
+        element_type_id = self.getElementTypeId("SMA")
+        interval_id = self.getIntervalId(interval=interval)
+        if parameter_period_name_id != -1:
+            if self.getParameterId(parameter_name_id=parameter_period_name_id, parameter_value=period) == -1:
+                parameter_period = models.db.Parameter(parameter_name_id=parameter_period_name_id,
+                                                       parameter_value=period)
+                self.session.add(parameter_period)
+                self.session.commit()
+
+        if self.getElementId(strategy_id=strategy_id, element_type_id=element_type_id, interval_id=interval_id,
+                             weight=weight) == -1:
+            element = models.db.Element(strategy_id=strategy_id, element_type_id=element_type_id,
+                                        interval_id=interval_id, weight=weight)
+            self.session.add(element)
+            self.session.commit()
+
+        parameter_period_id = self.getParameterId(parameter_name_id=parameter_period_name_id, parameter_value=period)
+        element_id = self.getElementId(strategy_id=strategy_id, element_type_id=element_type_id,
+                                       interval_id=interval_id, weight=weight)
+
+        parameter_period_element_parameter = models.db.Element_Parameter(element_id=element_id,
+                                                                         parameter_id=parameter_period_id)
+
+        self.session.add(parameter_period_element_parameter)
+        self.session.commit()
+
     def testNewStrategy(self, data):
         user_name = data["user_name"]
         ticker = data["ticker"]
@@ -267,6 +324,11 @@ class Server:
         percent_of_capital = data["percent_of_capital"]
         strategy_name = data["strategy_name"]
         list_items = data["test_strategy"]
+
+        test_id, test_time = self.testStrategyPlug()
+        strategy_id = self.addStrategy(test_id=test_id, user_name=user_name, strategy_name=strategy_name,
+                                       percent_of_capital=percent_of_capital, leverage=leverage,
+                                       ticker=ticker)
 
         if self.tickerExist(ticker):
             for el in list_items:
@@ -277,43 +339,59 @@ class Server:
                     decreasing = str_el[5]
                     weight = str_el[8]
                     interval = str_el[11]
-                    test_id = self.testStrategyPlug()
-                    strategy_id = self.addStrategy(test_id=test_id, user_name=user_name, strategy_name=strategy_name,
-                                                   percent_of_capital=percent_of_capital, leverage=leverage,
-                                                   ticker=ticker)
                     self.addDisbalanceElement(strategy_id=strategy_id, percent=percent, decreasing=decreasing,
                                               weight=weight, interval=interval)
 
-                elif True:
-                    pass
+                elif element_type == "SMA":
+                    period = str_el[2]
+                    weight = str_el[5]
+                    interval = str_el[8]
+                    self.addSMAElement(strategy_id=strategy_id, period=period, weight=weight, interval=interval)
 
-    def testStrategy(self, ticker, interval):
+        elements = self.getAllElementsByStrategyId(strategy_id)
+        strategy = {"elements": elements}
+        cash = 10000
+        commission = 0.001
+        max_loss, profit_per_year, full_profit = self.testStrategy(ticker=ticker, cash=cash,
+                                                                   percent_of_capital=percent_of_capital,
+                                                                   strategy=strategy, commission=commission)
+
+        self.session.query(models.db.Test) \
+            .filter(models.db.Test.test_id == test_id) \
+            .filter(models.db.Test.time == test_time) \
+            .update({"max_loss": max_loss, "profit_per_year": profit_per_year, "full_profit": full_profit})
+
+    def testStrategy(self, ticker, cash, percent_of_capital, strategy, commission):
         cerebro = bt.Cerebro()
-        ticker = "BTCUSDT"
-        data = bt.feeds.GenericCSVData(dataname=f"D:\candleData\{ticker}\{ticker}-1d.csv",
+
+        timeframe = "1m"
+        data = bt.feeds.GenericCSVData(dataname=f"D:\candle_data\{ticker}\{ticker}-{timeframe}.csv",
                                        separator=',',
                                        dtformat='%Y-%m-%d %H:%M:%S',
                                        timeframe=bt.TimeFrame.Minutes,
                                        openinterest=-1
                                        )
-        cerebro.addstrategy(strategy.TestStrategy)
-        cerebro.resampledata(data, compression=3600, timeframe=bt.TimeFrame.Minutes)
-        cerebro.broker.setcash(1000000.0)
-        cerebro.addsizer(bt.sizers.PercentSizer, percents=5)
-        cerebro.broker.setcommission(commission=0.001)
-        print('Starting Portfolio Value: %.2f' % cerebro.broker.getvalue())
+
+        cerebro.addstrategy(strategyTest.TestStrategy, strategy)
+        cerebro.resampledata(data, compression=1440, timeframe=bt.TimeFrame.Minutes)
+        cerebro.broker.setcash(cash=cash)
+        cerebro.addsizer(bt.sizers.PercentSizer, percents=percent_of_capital)
+        cerebro.broker.setcommission(commission=commission)
+
         cerebro.run()
-        print('Final Portfolio Value: %.2f' % cerebro.broker.getvalue())
+
+        max_loss = 0
+        profit_per_year = 0
+        full_profit = cerebro.broker.getvalue()/cash
+
+        return max_loss, profit_per_year, full_profit
 
     def testStrategyPlug(self, max_loss=0, profit_per_year=0, full_profit=0):
-        if self.getTestId(max_loss=max_loss, profit_per_year=profit_per_year, full_profit=full_profit) == -1:
-            test = models.db.Test(max_loss=max_loss, profit_per_year=profit_per_year, full_profit=full_profit)
-            self.session.add(test)
-            self.session.commit()
+        test = models.db.Test(max_loss=max_loss, profit_per_year=profit_per_year, full_profit=full_profit)
+        self.session.add(test)
+        self.session.commit()
 
-        results = self.getTestId(max_loss=max_loss, profit_per_year=profit_per_year, full_profit=full_profit)
-
-        return results
+        return int(test.test_id), test.time
 
 
 if __name__ == '__main__':

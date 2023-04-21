@@ -2,17 +2,36 @@ import backtrader as bt
 
 
 class TestStrategy(bt.Strategy):
-    params = (
-        ('maperiod', 10),
-    )
 
-    def __init__(self):
-        self.dataclose = self.datas[0].close
+    def __init__(self, strategy):
+        self.data_close = self.datas[0].close
         self.order = None
-        self.buyprice = None
-        self.buycomm = None
-        self.sma = bt.indicators.SimpleMovingAverage(
-            self.datas[0], period=self.params.maperiod)
+        self.buy_price = None
+        self.buy_comm = None
+
+        for el in strategy["elements"]:
+            if el.element_type == "sma":
+                period = 10
+                if el.parameter_name_id == "period":
+                    period = el.parameter_value
+                self.rsi = bt.talib.tafunc.SMA(self.data_close, period=period)
+
+        self.sma_1 = bt.talib.SMA()
+        if True:
+            self.rsi = bt.indicators.RelativeStrengthIndex(
+
+            )
+        self.macd = bt.indicators.MACD(
+
+        )
+        self.momentum = bt.indicators.Momentum(
+
+        )
+        self.bollinger = bt.indicators.BollingerBands(
+        )
+        self.sma = bt.indicators.SMA(
+            self.datas[0], period=10
+        )
 
     def notify_order(self, order):
         if order.status in [order.Submitted, order.Accepted]:
@@ -26,8 +45,8 @@ class TestStrategy(bt.Strategy):
                      order.executed.value,
                      order.executed.comm))
 
-                self.buyprice = order.executed.price
-                self.buycomm = order.executed.comm
+                self.buy_price = order.executed.price
+                self.buy_comm = order.executed.comm
             else:
                 self.log('SELL EXECUTED, Price: %.2f, Cost: %.2f, Comm %.2f' %
                          (order.executed.price,
@@ -53,11 +72,11 @@ class TestStrategy(bt.Strategy):
             return
 
         if not self.position:
-            if self.dataclose[0] > self.sma[0]:
-                self.log('BUY CREATE, %.2f' % self.dataclose[0])
+            if self.data_close[0] > self.sma[0]:
+                self.log('BUY CREATE, %.2f' % self.data_close[0])
                 self.order = self.buy()
 
         else:
-            if self.dataclose[0] < self.sma[0]:
-                self.log('SELL CREATE, %.2f' % self.dataclose[0])
+            if self.data_close[0] < self.sma[0]:
+                self.log('SELL CREATE, %.2f' % self.data_close[0])
                 self.order = self.sell()

@@ -99,6 +99,18 @@ class Server:
         else:
             return False
 
+    def getMarketId(self, market_name_id, token_key, token_secret):
+        results = self.session.query(models.db.Market) \
+            .filter(models.db.Market.market_name_id == str(market_name_id)) \
+            .filter(models.db.Market.token_key == str(token_key)) \
+            .filter(models.db.Market.token_secret == str(token_secret)) \
+            .first()
+
+        if results is None:
+            return -1
+        else:
+            return results.market_id
+
     def getIntervalId(self, interval):
         results = self.session.query(models.db.Interval) \
             .filter(models.db.Interval.interval == str(interval)) \
@@ -212,9 +224,10 @@ class Server:
             return results.strategy_id
 
     def getAllElementsByStrategyId(self, strategy_id):
-        results = self.session.query(models.db.Element_Parameter, models.db.Element, models.db.Parameter,
-                                     models.db.Type, models.db.Parameter_Name, models.db.Interval) \
-            .join(models.db.Element) \
+        results = self.session.query(models.db.Type.element_type, models.db.Parameter_Name.parameter_name,
+                                     models.db.Parameter.parameter_value, models.db.Interval.interval) \
+            .select_from(models.db.Element) \
+            .join(models.db.Element_Parameter) \
             .join(models.db.Parameter) \
             .join(models.db.Type) \
             .join(models.db.Parameter_Name) \
@@ -372,17 +385,21 @@ class Server:
                                        openinterest=-1
                                        )
 
-        cerebro.addstrategy(strategyTest.TestStrategy, strategy)
+        period = strategy["elements"][0][2]
+        indicator = strategy["elements"][0][0]
+
+        cerebro.addstrategy(strategyTest.TestStrategy, indicator=indicator, period=period)
         cerebro.resampledata(data, compression=1440, timeframe=bt.TimeFrame.Minutes)
-        cerebro.broker.setcash(cash=cash)
-        cerebro.addsizer(bt.sizers.PercentSizer, percents=percent_of_capital)
+        cerebro.broker.setcash(cash=int(cash))
+        cerebro.addsizer(bt.sizers.PercentSizer, percents=int(percent_of_capital)/100)
         cerebro.broker.setcommission(commission=commission)
 
         cerebro.run()
+        cerebro.plot()
 
         max_loss = 0
-        profit_per_year = 0
-        full_profit = cerebro.broker.getvalue()/cash
+        profit_per_year = cerebro.broker.getvalue()
+        full_profit = cerebro.broker.getvalue()
 
         return max_loss, profit_per_year, full_profit
 

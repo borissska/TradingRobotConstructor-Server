@@ -6,6 +6,20 @@ from sqlalchemy.ext.declarative import declarative_base
 database = declarative_base()
 
 
+class Market(database):
+    __tablename__ = "market"
+
+    market_id = sql.Column("market_id", sql.Integer, index=True, autoincrement=True, primary_key=True)
+    market_name_id = sql.Column("market_name_id", sql.Integer, sql.ForeignKey("market_name.market_name_id"),
+                                nullable=False)
+    token_key = sql.Column("token_key", sql.String(50), nullable=False)
+    token_secret = sql.Column("token_secret", sql.String(50), nullable=False)
+
+    def __init__(self, market_name_id, token_key, token_secret):
+        self.market_name_id = market_name_id
+        self.token_key = token_key
+        self.token_secret = token_secret
+
 class User(database):
     __tablename__ = "user"
 
@@ -28,21 +42,6 @@ class Market_Name(database):
 
     def __init__(self, market_name):
         self.market_name = market_name
-
-
-class Market(database):
-    __tablename__ = "market"
-
-    market_id = sql.Column("market_id", sql.Integer, index=True, autoincrement=True, primary_key=True)
-    market_name_id = sql.Column("market_name_id", sql.Integer, sql.ForeignKey("market_name.market_name_id"),
-                                nullable=False)
-    token_key = sql.Column("token_key", sql.String(50), nullable=False)
-    token_secret = sql.Column("token_secret", sql.String(50), nullable=False)
-
-    def __init__(self, market_name_id, token_key, token_secret):
-        self.market_name_id = market_name_id
-        self.token_key = token_key
-        self.token_secret = token_secret
 
 
 class User_Market(database):

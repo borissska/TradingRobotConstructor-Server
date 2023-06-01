@@ -6,6 +6,7 @@ import json
 import sqlalchemy
 from sqlalchemy.orm import sessionmaker
 import models.db
+from threadings import ThreadWithReturnValue
 
 
 class Server:
@@ -47,18 +48,35 @@ class Server:
                     user.close()
 
                 elif data["type"] == "check register":
-                    message = self.checkRegister(email=data["message"])
+                    register_thread = ThreadWithReturnValue(target=self.checkRegister, args=(data["message"], ))
+                    register_thread.start()
+                    message = register_thread.join()
                     self.sender(user, "check register", message)
 
                 elif data["type"] == "check user":
-                    message = self.checkUser(login=data["message"][0], password=data["message"][1])
+                    check_thread = ThreadWithReturnValue(target=self.checkUser, args=(data["message"][0],
+                                                                                      data["message"][1], ))
+                    check_thread.start()
+                    message = check_thread.join()
                     self.sender(user, "check user", message)
 
                 elif data["type"] == "add new user":
-                    self.addNewUser(email=data["message"][0], login=data["message"][1], password=data["message"][2])
+                    add_user_thread = ThreadWithReturnValue(target=self.addNewUser,
+                                                            args=(data["message"][0], data["message"][1],
+                                                                  data["message"][2], ))
+                    add_user_thread.start()
 
                 elif data["type"] == "test new strategy":
-                    self.testNewStrategy(data=data["message"])
+                    test_strategy_thread = ThreadWithReturnValue(target=self.testNewStrategy,
+                                                                 args=(data["message"], ))
+                    test_strategy_thread.start()
+
+                elif data["type"] == "update strategies":
+                    update_thread = ThreadWithReturnValue(target=self.getStrategiesWithTests,
+                                                          args=(data["message"], ))
+                    update_thread.start()
+                    message = update_thread.join()
+                    self.sender(user, "update strategies", message)
 
                 elif True:
                     pass
@@ -225,7 +243,8 @@ class Server:
 
     def getAllElementsByStrategyId(self, strategy_id):
         results = self.session.query(models.db.Type.element_type, models.db.Parameter_Name.parameter_name,
-                                     models.db.Parameter.parameter_value, models.db.Interval.interval) \
+                                     models.db.Parameter.parameter_value, models.db.Interval.interval,
+                                     models.db.Element.weight) \
             .select_from(models.db.Element) \
             .join(models.db.Element_Parameter) \
             .join(models.db.Parameter) \
@@ -238,6 +257,26 @@ class Server:
         if results is None:
             return -1
         else:
+            print(results)
+            return results
+
+    def getStrategiesWithTests(self, login):
+        user_id = self.getUserIdByName(login)
+        results = self.session.query(models.db.Strategy.strategy_name, models.db.Strategy.profit,
+                                     models.db.Strategy.percent_of_capital, models.db.Test.max_loss,
+                                     models.db.Test.full_profit, models.db.Test.profit_per_year,
+                                     models.db.State.state_name) \
+            .select_from(models.db.Strategy) \
+            .join(models.db.Test) \
+            .join(models.db.State) \
+            .filter(models.db.Strategy.user_id == int(user_id)) \
+            .all()
+
+        if results is None:
+            return -1
+        else:
+            results = [tuple(row) for row in results]
+            print(results)
             return results
 
     def addNewUser(self, email, login, password):
@@ -264,6 +303,10 @@ class Server:
 
     def addDisbalanceElement(self, strategy_id, percent, decreasing, weight, interval):
         parameter_percent_name_id = self.getParameterNameId("candle_body_percent")
+        parameter_decreasing_name_id = self.getParameterNameId("candle_body_percent")
+        element_type_id = self.getElementTypeId("disbalance")
+        interval_id = self.getIntervalId(interval=interval)
+
         if parameter_percent_name_id != -1:
             if self.getParameterId(parameter_name_id=parameter_percent_name_id, parameter_value=percent) == -1:
                 parameter_percent = models.db.Parameter(parameter_name_id=parameter_percent_name_id,
@@ -271,7 +314,6 @@ class Server:
                 self.session.add(parameter_percent)
                 self.session.commit()
 
-        parameter_decreasing_name_id = self.getParameterNameId("candle_body_percent")
         if parameter_decreasing_name_id != -1:
             if self.getParameterId(parameter_name_id=parameter_decreasing_name_id, parameter_value=decreasing) == -1:
                 parameter_decreasing = models.db.Parameter(parameter_name_id=parameter_decreasing_name_id,
@@ -279,10 +321,9 @@ class Server:
                 self.session.add(parameter_decreasing)
                 self.session.commit()
 
-        interval_id = self.getIntervalId(interval=interval)
-
-        if self.getElementId(strategy_id=strategy_id, element_type_id=1, interval_id=interval_id, weight=weight) == -1:
-            element = models.db.Element(strategy_id=strategy_id, element_type_id=1,
+        if self.getElementId(strategy_id=strategy_id, element_type_id=element_type_id, interval_id=interval_id,
+                             weight=weight) == -1:
+            element = models.db.Element(strategy_id=strategy_id, element_type_id=element_type_id,
                                         interval_id=interval_id, weight=weight)
             self.session.add(element)
             self.session.commit()
@@ -290,7 +331,7 @@ class Server:
         parameter_percent_id = self.getParameterId(parameter_name_id=parameter_percent_name_id, parameter_value=percent)
         parameter_decreasing_id = self.getParameterId(parameter_name_id=parameter_decreasing_name_id,
                                                       parameter_value=decreasing)
-        element_id = self.getElementId(strategy_id=strategy_id, element_type_id=1,
+        element_id = self.getElementId(strategy_id=strategy_id, element_type_id=element_type_id,
                                        interval_id=interval_id, weight=weight)
 
         parameter_percent_element_parameter = models.db.Element_Parameter(element_id=element_id,
@@ -304,8 +345,9 @@ class Server:
 
     def addSMAElement(self, strategy_id, period, weight, interval):
         parameter_period_name_id = self.getParameterNameId("period")
-        element_type_id = self.getElementTypeId("SMA")
+        element_type_id = self.getElementTypeId("sma")
         interval_id = self.getIntervalId(interval=interval)
+
         if parameter_period_name_id != -1:
             if self.getParameterId(parameter_name_id=parameter_period_name_id, parameter_value=period) == -1:
                 parameter_period = models.db.Parameter(parameter_name_id=parameter_period_name_id,
@@ -328,6 +370,76 @@ class Server:
                                                                          parameter_id=parameter_period_id)
 
         self.session.add(parameter_period_element_parameter)
+        self.session.commit()
+
+    def addEMAElement(self, strategy_id, period, weight, interval):
+        parameter_period_name_id = self.getParameterNameId("period")
+        element_type_id = self.getElementTypeId("ema")
+        interval_id = self.getIntervalId(interval=interval)
+
+        if parameter_period_name_id != -1:
+            if self.getParameterId(parameter_name_id=parameter_period_name_id, parameter_value=period) == -1:
+                parameter_period = models.db.Parameter(parameter_name_id=parameter_period_name_id,
+                                                       parameter_value=period)
+                self.session.add(parameter_period)
+                self.session.commit()
+
+        if self.getElementId(strategy_id=strategy_id, element_type_id=element_type_id, interval_id=interval_id,
+                             weight=weight) == -1:
+            element = models.db.Element(strategy_id=strategy_id, element_type_id=element_type_id,
+                                        interval_id=interval_id, weight=weight)
+            self.session.add(element)
+            self.session.commit()
+
+        parameter_period_id = self.getParameterId(parameter_name_id=parameter_period_name_id, parameter_value=period)
+        element_id = self.getElementId(strategy_id=strategy_id, element_type_id=element_type_id,
+                                       interval_id=interval_id, weight=weight)
+
+        parameter_period_element_parameter = models.db.Element_Parameter(element_id=element_id,
+                                                                         parameter_id=parameter_period_id)
+
+        self.session.add(parameter_period_element_parameter)
+        self.session.commit()
+
+    def addRSIElement(self, strategy_id, sell_percent, buy_percent, weight, interval):
+        sell_percent_name_id = self.getParameterNameId("sell_percent_rsi")
+        buy_percent_name_id = self.getParameterNameId("buy_percent_rsi")
+        element_type_id = self.getElementTypeId("rsi")
+        interval_id = self.getIntervalId(interval=interval)
+
+        if sell_percent_name_id != -1:
+            if self.getParameterId(parameter_name_id=sell_percent_name_id, parameter_value=sell_percent) == -1:
+                parameter_sell_percent = models.db.Parameter(parameter_name_id=sell_percent_name_id,
+                                                             parameter_value=sell_percent)
+                self.session.add(parameter_sell_percent)
+                self.session.commit()
+
+        if buy_percent_name_id != -1:
+            if self.getParameterId(parameter_name_id=buy_percent_name_id, parameter_value=buy_percent) == -1:
+                parameter_buy_percent = models.db.Parameter(parameter_name_id=buy_percent_name_id,
+                                                            parameter_value=buy_percent)
+                self.session.add(parameter_buy_percent)
+                self.session.commit()
+
+        if self.getElementId(strategy_id=strategy_id, element_type_id=element_type_id, interval_id=interval_id,
+                             weight=weight) == -1:
+            element = models.db.Element(strategy_id=strategy_id, element_type_id=element_type_id,
+                                        interval_id=interval_id, weight=weight)
+            self.session.add(element)
+            self.session.commit()
+
+        sell_percent_name_id = self.getParameterId(parameter_name_id=sell_percent_name_id, parameter_value=sell_percent)
+        buy_percent_name_id = self.getParameterId(parameter_name_id=buy_percent_name_id, parameter_value=buy_percent)
+        element_id = self.getElementId(strategy_id=strategy_id, element_type_id=element_type_id,
+                                       interval_id=interval_id, weight=weight)
+
+        parameter_percent_element_parameter = models.db.Element_Parameter(element_id=element_id,
+                                                                          parameter_id=sell_percent_name_id)
+        parameter_decreasing_element_parameter = models.db.Element_Parameter(element_id=element_id,
+                                                                             parameter_id=buy_percent_name_id)
+
+        self.session.add(parameter_percent_element_parameter)
+        self.session.add(parameter_decreasing_element_parameter)
         self.session.commit()
 
     def testNewStrategy(self, data):
@@ -361,20 +473,34 @@ class Server:
                     interval = str_el[8]
                     self.addSMAElement(strategy_id=strategy_id, period=period, weight=weight, interval=interval)
 
-        elements = self.getAllElementsByStrategyId(strategy_id)
-        strategy = {"elements": elements}
+                elif element_type == "RSI":
+                    sell = str_el[2]
+                    buy = str_el[5]
+                    weight = str_el[8]
+                    interval = str_el[11]
+                    self.addRSIElement(strategy_id=strategy_id, sell_percent=sell, buy_percent=buy,
+                                       weight=weight, interval=interval)
+
+                elif element_type == "EMA":
+                    period = str_el[2]
+                    weight = str_el[5]
+                    interval = str_el[8]
+                    self.addEMAElement(strategy_id=strategy_id, period=period, weight=weight, interval=interval)
+
+        strategy = self.getAllElementsByStrategyId(strategy_id)
         cash = 10000
         commission = 0.001
         max_loss, profit_per_year, full_profit = self.testStrategy(ticker=ticker, cash=cash,
                                                                    percent_of_capital=percent_of_capital,
-                                                                   strategy=strategy, commission=commission)
+                                                                   strategy=strategy, commission=commission,
+                                                                   strategy_name=strategy_name)
 
         self.session.query(models.db.Test) \
             .filter(models.db.Test.test_id == test_id) \
             .filter(models.db.Test.time == test_time) \
             .update({"max_loss": max_loss, "profit_per_year": profit_per_year, "full_profit": full_profit})
 
-    def testStrategy(self, ticker, cash, percent_of_capital, strategy, commission):
+    def testStrategy(self, ticker, cash, percent_of_capital, strategy, commission, strategy_name):
         cerebro = bt.Cerebro()
 
         timeframe = "1m"
@@ -385,17 +511,14 @@ class Server:
                                        openinterest=-1
                                        )
 
-        period = strategy["elements"][0][2]
-        indicator = strategy["elements"][0][0]
-
-        cerebro.addstrategy(strategyTest.TestStrategy, indicator=indicator, period=period)
+        cerebro.addstrategy(strategyTest.TestStrategy, strategy)
         cerebro.resampledata(data, compression=1440, timeframe=bt.TimeFrame.Minutes)
         cerebro.broker.setcash(cash=int(cash))
         cerebro.addsizer(bt.sizers.PercentSizer, percents=int(percent_of_capital)/100)
         cerebro.broker.setcommission(commission=commission)
 
         cerebro.run()
-        cerebro.plot()
+        cerebro.plot(path=f"C:\diplomeProject\clientApp\icons\{strategy_name}.png", save=True, show=False)
 
         max_loss = 0
         profit_per_year = cerebro.broker.getvalue()

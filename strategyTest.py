@@ -1,15 +1,49 @@
 import backtrader as bt
+from collections import defaultdict
 
 
 class TestStrategy(bt.Strategy):
-    params = (('indicator', 'sma'), ('period', 30),)
 
-    INDS = ['sma', 'ema', 'stoc', 'rsi', 'macd', 'bollinger', 'aroon',
-            'ultimate', 'trix', 'kama', 'adxr', 'dema', 'ppo', 'tema',
-            'roc', 'williamsr']
-
-    def __init__(self):
+    def __init__(self, params=None):
         self.data_close = self.datas[0].close
+        self.full_weight = 0
+        self.sma_exist = False
+        self.ema_exist = False
+        self.rsi_exist = False
+
+        if params is not None:
+            for i in range(len(params)):
+                el_type, name, value, interval, weight = params[i]
+                setattr(self.params, "indicator", el_type)
+                setattr(self.params, "name", name)
+                setattr(self.params, "value", value)
+                setattr(self.params, "interval", interval)
+                setattr(self.params, "weight", weight)
+                if self.p.indicator == 'sma':
+                    self.sma = bt.ind.SMA(self.data_close, period=int(self.p.value))
+                    self.sma_interval = self.p.interval
+                    self.sma_weight = self.p.weight
+                    self.full_weight += self.sma_weight
+                    self.sma_exist = True
+
+                elif self.p.indicator == 'ema':
+                    self.ema = bt.ind.EMA(period=int(self.p.value))
+                    self.ema_interval = self.p.interval
+                    self.ema_weight = self.p.weight
+                    self.full_weight += self.ema_weight
+                    self.ema_exist = True
+
+                elif self.p.indicator == 'rsi' and self.rsi_exist:
+                    self.rsi_buy = self.p.value
+
+                elif self.p.indicator == 'rsi':
+                    self.rsi = bt.ind.RSI(self.data_close)
+                    self.rsi_interval = self.p.interval
+                    self.rsi_weight = self.p.weight
+                    self.rsi_sell = self.p.value
+                    self.full_weight += self.rsi_weight
+                    self.rsi_exist = True
+
         self.order = None
         self.buy_price = None
         self.buy_comm = None
@@ -17,9 +51,6 @@ class TestStrategy(bt.Strategy):
         # if self.p.doji:
         #     bt.talib.CDLDOJI(self.data.open, self.data.high,
         #                      self.data.low, self.data.close)
-
-        if self.p.indicator == 'sma':
-            self.sma = bt.indicators.SMA(self.data_close, period=int(self.p.period))
 
         # elif self.p.ind == 'ema':
         #     bt.talib.EMA(timeperiod=25, plotname='TA_SMA')
@@ -93,12 +124,36 @@ class TestStrategy(bt.Strategy):
         #     bt.indicators.WilliamsR(self.data)
 
     def next(self):
-        if self.order:
-            return
+        weight = 0
 
         if not self.position:
-            if self.data_close[0] > self.sma[0]:
+            if self.sma_exist:
+                if self.data_close > self.sma:
+                    weight += self.sma_weight
+
+            if self.ema_exist:
+                if self.data_close > self.ema:
+                    weight += self.ema_weight
+
+            if self.rsi_exist:
+                if float(self.rsi_buy) > self.rsi:
+                    weight += self.rsi_weight
+
+            if float(weight) > self.full_weight * 0.8:
                 self.order = self.buy()
+
         else:
-            if self.data_close[0] < self.sma[0]:
+            if self.sma_exist:
+                if self.data_close < self.sma:
+                    weight += self.sma_weight
+
+            if self.ema_exist:
+                if self.data_close < self.ema:
+                    weight += self.ema_weight
+
+            if self.rsi_exist:
+                if float(self.rsi_sell) < self.rsi:
+                    weight += self.rsi_weight
+
+            if float(weight) > self.full_weight * 0.2:
                 self.order = self.sell()

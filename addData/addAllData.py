@@ -5,7 +5,7 @@ import os
 import requests
 import io
 import zipfile
-from classes.stock import Stock
+from addData.stock import Stock
 
 
 def download_csv_file(*, link, path_csv):
@@ -28,7 +28,7 @@ def download_zip_files(*, start_date):
     while start_date <= end_date - delay:
         stock.set_date(year=start_date.year, month_number=start_date.month, day=start_date.day)
         link = f"https://data.binance.vision/data/spot/daily/klines/{stock.get_full_link_string()}.zip"
-        path_zip = f"D:\candleData\{stock.get_ticker()}\{stock.get_ticker()}-{stock.get_timeframe()}-{stock.get_datetime()}.zip"
+        path_zip = f"D:\candle_data\{stock.get_ticker()}\{stock.get_ticker()}-{stock.get_timeframe()}-{stock.get_datetime()}.zip"
         if os.path.exists(path_zip):
             pass
         else:
@@ -67,14 +67,14 @@ def make_final_csv_file(*, start_date, path_final_csv):
 
     while start_date <= end_date - delay:
         stock.set_date(year=start_date.year, month_number=start_date.month, day=start_date.day)
-        path_zip = f"D:\candleData\{stock.get_ticker()}\{stock.get_ticker()}-{stock.get_timeframe()}-{stock.get_datetime()}.zip"
+        path_zip = f"D:\candle_data\{stock.get_ticker()}\{stock.get_ticker()}-{stock.get_timeframe()}-{stock.get_datetime()}.zip"
         add_zip_file_to_final_csv_in_needed_format(path_zip=path_zip, path_final_csv=path_final_csv)
         start_date += delta
 
 
 if __name__ == '__main__':
-    stock = Stock(ticker="BTCUSDT", timeframe="1d")
-    path_final_csv = f"D:\candleData\{stock.get_ticker()}\{stock.get_ticker()}-{stock.get_timeframe()}.csv"
+    stock = Stock(ticker="BTCUSDT", timeframe="1m")
+    path_final_csv = f"D:\candle_data\{stock.get_ticker()}\{stock.get_ticker()}-{stock.get_timeframe()}.csv"
     start_date = datetime.date(2021, 3, 1)
 
     download_zip_files(start_date=start_date)

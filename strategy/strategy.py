@@ -2,7 +2,7 @@ import backtrader as bt
 from collections import defaultdict
 
 
-class TestStrategy(bt.Strategy):
+class Strategy(bt.Strategy):
 
     def __init__(self, params=None):
         self.data_close = self.datas[0].close

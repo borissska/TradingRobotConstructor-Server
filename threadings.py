@@ -4,8 +4,8 @@ from threading import Thread
 class ThreadWithReturnValue(Thread):
     def __init__(self, group=None, target=None, name=None,
                  args=(), kwargs=None):
-        Thread.__init__(self, group, target, name, args, kwargs)
-
+        Thread.__init__(self, group, target, name, args, kwargs, )
+        self.daemon = True
         self._return = None
 
     def run(self):

@@ -5,22 +5,28 @@ from strategy.strategy import Strategy
 def testStrategy(ticker, cash, percent_of_capital, strategy, commission, strategy_name):
     cerebro = bt.Cerebro()
 
-    timeframe = "1m"
-    data = bt.feeds.GenericCSVData(dataname=f"D:\candle_data\{ticker}\{ticker}-{timeframe}.csv",
-                                   separator=',',
-                                   dtformat='%Y-%m-%d %H:%M:%S',
-                                   timeframe=bt.TimeFrame.Minutes,
-                                   openinterest=-1
-                                   )
+    timeframe_minute = "1m"
+    data_minute = bt.feeds.GenericCSVData(dataname=f"D:\candle_data\{ticker}\{ticker}-{timeframe_minute}.csv",
+                                          separator=',',
+                                          dtformat='%Y-%m-%d %H:%M:%S',
+                                          timeframe=bt.TimeFrame.Minutes,
+                                          openinterest=-1
+                                          )
 
+    cerebro.resampledata(data_minute, compression=15, timeframe=bt.TimeFrame.Minutes)
+    cerebro.resampledata(data_minute, compression=30, timeframe=bt.TimeFrame.Minutes)
+    cerebro.resampledata(data_minute, compression=60, timeframe=bt.TimeFrame.Minutes)
+    cerebro.resampledata(data_minute, compression=240, timeframe=bt.TimeFrame.Minutes)
+    cerebro.resampledata(data_minute, compression=720, timeframe=bt.TimeFrame.Minutes)
+    cerebro.resampledata(data_minute, compression=1, timeframe=bt.TimeFrame.Days)
+    cerebro.resampledata(data_minute, compression=1, timeframe=bt.TimeFrame.Weeks)
     cerebro.addstrategy(Strategy, strategy)
-    cerebro.resampledata(data, compression=1440, timeframe=bt.TimeFrame.Minutes)
     cerebro.broker.setcash(cash=int(cash))
     cerebro.addsizer(bt.sizers.PercentSizer, percents=int(percent_of_capital))
     cerebro.broker.setcommission(commission=commission)
 
     cerebro.run()
-    cerebro.plot(path=f"C:\diplomeProject\clientApp\icons\{strategy_name}.png", save=True, show=False)
+    cerebro.plot()
 
     max_loss = 0
     profit_per_year = cerebro.broker.getvalue()

@@ -270,7 +270,6 @@ class Strategy(bt.Strategy):
                     weight += self.rsi_weight
 
             if float(weight) > self.full_weight * 0.5:
-                print("Buy")
                 self.order = self.buy()
 
         else:
@@ -325,5 +324,4 @@ class Strategy(bt.Strategy):
                     weight += self.rsi_weight
 
             if float(weight) > self.full_weight * 0.5:
-                print("Sell")
                 self.order = self.sell()

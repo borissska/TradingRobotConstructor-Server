@@ -73,7 +73,7 @@ def make_final_csv_file(*, start_date, path_final_csv):
 
 
 if __name__ == '__main__':
-    stock = Stock(ticker="BTCUSDT", timeframe="1m")
+    stock = Stock(ticker="BTCUSDT", timeframe="1d")
     path_final_csv = f"D:\candle_data\{stock.get_ticker()}\{stock.get_ticker()}-{stock.get_timeframe()}.csv"
     start_date = datetime.date(2021, 3, 1)
 

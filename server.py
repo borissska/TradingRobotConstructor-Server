@@ -73,11 +73,12 @@ class Server:
                     self.sender(user, "update strategies", message)
 
                 elif data["type"] == "connect to market":
-                    market_thread = ThreadWithReturnValue(target=self.server_db.checkMarketData,
-                                                          args=(data["message"][0], data["message"][1],
-                                                                data["message"][2],))
-                    market_thread.start()
-                    message = market_thread.join()
+                    message = self.server_db.checkMarketData(data["message"][0], data["message"][1], data["message"][2])
+                    # market_thread = ThreadWithReturnValue(target=self.server_db.checkMarketData,
+                    #                                       args=(data["message"][0], data["message"][1],
+                    #                                             data["message"][2],))
+                    # market_thread.start()
+                    # message = market_thread.join()
                     self.sender(user, "connect to market", message)
 
                 elif True:

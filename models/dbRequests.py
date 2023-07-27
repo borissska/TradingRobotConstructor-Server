@@ -1,4 +1,5 @@
 import re
+from backtrader_binance import BinanceStore
 from markets.bybitConn import Bybit
 import models.db
 import sqlalchemy
@@ -12,6 +13,7 @@ class ServerDB:
         models.db.create_database(engine)
         Session = sessionmaker(bind=engine)
         self.session = Session()
+        self.store = None
 
     def checkRegister(self, email):
         results = self.session.query(models.db.User) \
@@ -212,7 +214,7 @@ class ServerDB:
 
     def checkMarketData(self, market, key, secret):
         if market == "Bybit":
-            bybit = Bybit(api_key=key, api_secret=secret)
+            self.store = bybit = Bybit(api_key=key, api_secret=secret)
             if bybit.is_exist:
                 balance = bybit.getWalletBalance()
                 return balance["result"]["balances"][0]["total"]
@@ -220,6 +222,19 @@ class ServerDB:
                 return None
 
         elif market == "Binance":
+            coin_target = 'USDT'
+
+            self.store = BinanceStore(
+                api_key="NNNN",
+                api_secret="NNNN",
+                coin_target=coin_target,
+                testnet=False)
+
+            balance = self.store.getbroker().getcash()
+            print(balance)
+            return balance
+
+        elif market == "":
             pass
 
     def addStrategy(self, test_id, user_name, strategy_name, percent_of_capital, leverage, ticker):
@@ -431,7 +446,7 @@ class ServerDB:
         max_loss, profit_per_year, full_profit = testStrategy(ticker=ticker, cash=cash,
                                                               percent_of_capital=percent_of_capital,
                                                               strategy=strategy, commission=commission,
-                                                              strategy_name=strategy_name)
+                                                              strategy_name=strategy_name, store=self.store)
 
         self.session.query(models.db.Test) \
             .filter(models.db.Test.test_id == test_id) \

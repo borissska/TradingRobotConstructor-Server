@@ -7,4 +7,5 @@ pybit==5.4.0
 requests==2.31.0
 SQLAlchemy==2.0.8
 pymysql==1.1.0
-matplotlib==3.2.2
+matplotlib==3.7.2
+backtrader_binance == 1.0.5
